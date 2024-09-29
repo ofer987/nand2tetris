@@ -18,5 +18,13 @@ CHIP DMux8Way {
     OUT a, b, c, d, e, f, g, h;
 
     PARTS:
-    //// Replace this comment with your code.
+    Not(in=sel[2], out=thirdBitIsFalse);
+
+    // 100, 101, 110, 111
+    And(a=sel[2], b=in, out=thirdBitIsEnabled);
+    DMux4Way(in=thirdBitIsEnabled, sel=sel[0..1], a=e, b=f, c=g, d=h);
+
+    // 000, 001, 010, 011
+    And(a=thirdBitIsFalse, b=in, out=thirdBitIsDisabled);
+    DMux4Way(in=thirdBitIsDisabled, sel=sel[0..1], a=a, b=b, c=c, d=d);
 }

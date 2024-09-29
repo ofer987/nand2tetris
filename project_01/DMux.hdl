@@ -11,6 +11,27 @@ CHIP DMux {
     IN in, sel;
     OUT a, b;
 
+    // notIn:   Not(in)
+    // a:       in and sel          b:      in and sel
+    // a:       in and sel          b:      in or sel
+    // a:       in or sel           b:      NOT(in) and sel
+    // a:       in xor sel          b:      in and sel
+
+    // a: (in and sel) or (in or sel) or (in xor sel)
+    // b: (in and sel) or (in or sel) or (NOT(in) and sel) or (in and sel)
+
+    // a: in and (Not(sel))
+    // b: in and sel
+
+    // a: in and (Not(sel))
+    // b: in and sel
+
+    // a: in and (Not(sel))
+    // b: in and sel
     PARTS:
+
+    Not(in=sel, out=notSel);
+    And(a=in, b=notSel, out=a);
+    And(a=in, b=sel, out=b);
     //// Replace this comment with your code.
 }

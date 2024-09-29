@@ -14,5 +14,14 @@ CHIP DMux4Way {
     OUT a, b, c, d;
 
     PARTS:
-    //// Replace this comment with your code.
+    Not(in=sel[1], out=secondBitIsFalse);
+
+    // 10, 11
+    And(a=in, b=sel[1], out=secondBitIsEnabled);
+    DMux(in=secondBitIsEnabled, sel=sel[0], a=c, b=d);
+
+    // 00, 01
+    And(a=in, b=secondBitIsFalse, out=secondBitIsDisabled);
+    DMux(in=secondBitIsDisabled, sel=sel[0], a=a, b=b);
+
 }

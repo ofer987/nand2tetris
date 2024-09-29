@@ -10,6 +10,13 @@ CHIP Mux {
     IN a, b, sel;
     OUT out;
 
+    // outA:    NOT(sel) and a
+    // outB:    sel and b
+    // out:     outA xor outB    
+
     PARTS:
-    //// Replace this comment with your code.
+    Not(in=sel, out=notSel);
+    And(a=notSel, b=a, out=outA);
+    And(a=sel, b=b, out=outB);
+    Xor(a=outA, b=outB, out=out);
 }
