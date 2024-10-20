@@ -1,0 +1,57 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/3/a/PC.hdl
+/**
+ * A 16-bit counter.
+ * if      reset(t): out(t+1) = 0
+ * else if load(t):  out(t+1) = in(t)
+ * else if inc(t):   out(t+1) = out(t) + 1
+ * else              out(t+1) = out(t)
+ */
+CHIP PC {
+    IN in[16], reset, load, inc;
+    OUT out[16];
+    
+    PARTS:
+    Register(in=newValue, load=true, out=out, out=chosenRegister);
+
+    Mux16(a=chosenRegister, b=false, sel=reset, out=resetRegister);
+    Mux16(a=chosenRegister, b=in, sel=load, out=loadRegister);
+    
+    ALU(
+        x=loadRegister, 
+        y[0]=true, 
+        zx=false, 
+        nx=false, 
+        zy=false, 
+        ny=false, 
+        f=true, 
+        no=false, 
+        out=incrementValue);
+    Mux16(a=chosenRegister, b=incrementValue, sel=inc, out=incrementRegister);
+
+    //  reset,  load,   inc,    result
+    //  0,      0       0       currentResult
+    //  0,      0,      1,      currentResult + 1
+    //  0,      1,      0,      in
+    //  0,      1,      1,      in
+    //  1,      0,      0,      0,
+    //  1,      0,      1,      0,
+    //  1,      1,      0,      0
+    //  1,      1,      1,      0           
+    
+    Mux8Way16(
+        a=incrementRegister,
+        b=incrementRegister,
+        c=loadRegister,
+        d=loadRegister,
+        e=resetRegister,
+        f=resetRegister,
+        g=resetRegister,
+        h=resetRegister,
+        sel[0]=inc,
+        sel[1]=load,
+        sel[2]=reset,
+        out=newValue);
+}
