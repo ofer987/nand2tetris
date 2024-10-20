@@ -11,6 +11,10 @@
 // E.g., R2 = 2 * 6 = 12
 // E.g., R2 = 6 * 2 = 12
 
+	// Clear @R2
+	@R2
+	M=0
+
   // Result
   @R8
   M=0
@@ -23,6 +27,7 @@
 
   // Iterator (i)
   @R7
+	@n
   M=D
 
 (LOOP)
@@ -33,10 +38,8 @@
   @R8
   M=D+M
 
-  @R7
-  D=M
-  M=D-1
-  D=D-1
+  @n
+	MD=M-1
 
   @LOOP
   D;JGT
