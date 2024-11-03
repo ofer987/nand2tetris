@@ -1,0 +1,180 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require_relative '../lib/assembler'
+
+ADDRESS_REGEX = /^@(\d+)$/
+LABEL = /^\((.+)\)$/
+
+A = 'A'
+D = 'D'
+M = 'M'
+
+CONTROL_MAP = {
+  '0' => '0101010',
+  '1' => '0111111',
+  '-1' => '0111010',
+  'D' => '0001100',
+  'A' => '0110000',
+  'M' => '1110000',
+  '!D' => '0001101',
+  '!A' => '0110001',
+  '!M' => '1110001',
+  '-D' => '0001111',
+  '-A' => '0110011',
+  '-M' => '1110011',
+  'D+1' => '0011111',
+  'A+1' => '0110111',
+  'M+1' => '1110111',
+  'D-1' => '0001110',
+  'A-1' => '0110010',
+  'M-1' => '1110010',
+  'D+A' => '0000010',
+  'D+M' => '1000010',
+  'D-A' => '0010011',
+  'D-M' => '1010011',
+  'A-D' => '0000111',
+  'M-D' => '1000111',
+  'D&A' => '0000000',
+  'D&M' => '1000000',
+  'D|A' => '0010101',
+  'D|M' => '1010101'
+}.freeze
+
+JUMP_MAP = {
+  '' => '000',
+  'JGT' => '001',
+  'JEQ' => '010',
+  'JGE' => '011',
+  'JLT' => '100',
+  'JNE' => '101',
+  'JLE' => '110',
+  'JMP' => '111'
+}.freeze
+
+init_address_map = {
+  'SP' => 0,
+  'LCL' => 1,
+  'ARG' => 2,
+  'THIS' => 3,
+  'THAT' => 4,
+  'R0' => 0,
+  'R1' => 1,
+  'R2' => 2,
+  'R3' => 3,
+  'R4' => 4,
+  'R5' => 5,
+  'R6' => 6,
+  'R7' => 7,
+  'R8' => 8,
+  'R9' => 9,
+  'R10' => 10,
+  'R11' => 11,
+  'R12' => 12,
+  'R13' => 13,
+  'R14' => 14,
+  'R15' => 15,
+  'SCREEN' => 16_384,
+  'KBD' => 24_576
+}
+
+def convert_to_binary(decimal)
+  binary = decimal.to_s(2)
+  padding_required = 16 - binary.size
+  padded_zeroes = padding_required.times.map { 0 }.join('')
+
+  "#{padded_zeroes}#{binary}"
+end
+
+def convert_jump_to_binary(code)
+  raise "Jump command #{code} does not have ;" unless code.include? ';'
+
+  control_code, jump_code = code.split(';')
+
+  raise "Control code #{control_code} does not exist" unless CONTROL_MAP.include? control_code
+  raise "Jump code #{jump_code} does not exist" unless JUMP_MAP.include? jump_code
+
+  first_bits = '111'
+  control_bits = CONTROL_MAP[control_code]
+  jump_bits = JUMP_MAP[jump_code].to_s
+
+  "#{first_bits}#{control_bits}000#{jump_bits}"
+end
+
+def convert_assignment_to_binary(code)
+  raise "Assignment command #{code} does not have ;" unless code.include? '='
+
+  # control_code is     3 to 9
+  # destination_code is 10 to 12
+  destination_code, control_code = code.split('=')
+
+  a_code = destination_code.include?(A) ? '1' : '0'
+  d_code = destination_code.include?(D) ? '1' : '0'
+  m_code = destination_code.include?(M) ? '1' : '0'
+
+  raise "Control code #{control_code} does not exist" unless CONTROL_MAP.include? control_code
+
+  control_bits = CONTROL_MAP[control_code]
+
+  first_bits = '111'
+  "#{first_bits}#{control_bits}#{a_code}#{d_code}#{m_code}000"
+end
+
+source_code_path = ARGV[0].to_s
+
+source_code = File.readlines(source_code_path)
+  .map(&:strip)
+  .map { |line| line.gsub(/\s+/, '') }
+  .reject(&:empty?)
+  .reject { |line| line.start_with? '//' }
+
+ram = RAM.new(init_address_map)
+
+ram.add_labels(source_code)
+ram.add_variables(source_code)
+
+line_number = -1
+binary_code = source_code.map do |line|
+  result = NilLine.new
+
+  if line.match? ADDRESS_REGEX
+    line_number += 1
+    decimal_value = line.match(ADDRESS_REGEX)[1].to_i
+
+    binary = convert_to_binary(decimal_value)
+    result = Line.new(line, binary)
+  elsif line.match? RAM::VARIABLE_ADDRESS_REGEX
+    line_number += 1
+    variable_name = line.match(RAM::VARIABLE_ADDRESS_REGEX)[1]
+    raise "Failed to find #{variable_name} in ram" unless ram.include? variable_name
+
+    decimal_value = ram[variable_name]
+
+    binary = convert_to_binary(decimal_value)
+    result = Line.new(line, binary)
+  elsif line.match? LABEL
+    # Do nothing
+  elsif line.include? ';'
+    line_number += 1
+
+    # This is a jump command
+    binary = convert_jump_to_binary(line)
+    result = Line.new(line, binary)
+  elsif line.include? '='
+    line_number += 1
+
+    # this is an assignment command
+    binary = convert_assignment_to_binary(line)
+    result = Line.new(line, binary)
+  else
+    raise "Failed to parse #{line}"
+  end
+
+  result
+end
+
+binary_code = binary_code.reject(&:blank?)
+
+puts binary_code
+  .map(&:binary)
+  .join("\n")

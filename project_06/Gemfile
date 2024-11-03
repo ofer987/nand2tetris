@@ -1,0 +1,11 @@
+# frozen_string_literal: true
+
+source 'https://rubygems.org'
+
+# Specify your gem's dependencies in assembler.gemspec
+gemspec
+
+gem 'activesupport', '~> 7.2.2'
+gem 'pry', '~> 0.14.2', require: false
+gem 'rake', '~> 13.0'
+gem 'rubocop', '~> 1.68', require: false
