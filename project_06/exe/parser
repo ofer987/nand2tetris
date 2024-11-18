@@ -83,7 +83,10 @@ def convert_to_binary(decimal)
   padding_required = 16 - binary.size
   padded_zeroes = padding_required.times.map { 0 }.join('')
 
-  "#{padded_zeroes}#{binary}"
+  result = "#{padded_zeroes}#{binary}".reverse[..14].reverse
+
+  # Add zero because this is an address
+  "0#{result}"
 end
 
 def convert_jump_to_binary(code)
