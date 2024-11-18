@@ -3,6 +3,7 @@
 
 require_relative '../lib/assembler'
 
+ADDRESS_WIDTH = 15
 ADDRESS_REGEX = /^@(\d+)$/
 LABEL = /^\((.+)\)$/
 
@@ -80,7 +81,7 @@ init_address_map = {
 
 def convert_to_binary(decimal)
   binary = decimal.to_s(2)
-  padding_required = 16 - binary.size
+  padding_required = ADDRESS_WIDTH - binary.size
   padded_zeroes = padding_required.times.map { 0 }.join('')
 
   result = "#{padded_zeroes}#{binary}".reverse[..14].reverse
