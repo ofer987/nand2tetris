@@ -135,6 +135,7 @@ source_code = File.readlines(source_code_path)
 ram = RAM.new(init_address_map)
 
 ram.add_labels(source_code)
+ram.add_static_memory(source_code)
 ram.add_variables(source_code)
 
 line_number = -1
@@ -145,6 +146,14 @@ binary_code = source_code.map do |line|
     line_number += 1
     decimal_value = line.match(ADDRESS_REGEX)[1].to_i
 
+    binary = convert_to_binary(decimal_value)
+    result = Line.new(line, binary)
+  elsif line.match? RAM::STATIC_ADDRESS_REGEX
+    line_number += 1
+    static_name = line.match(RAM::STATIC_ADDRESS_REGEX)[1]
+    raise "Failed to find #{static_name} in ram" unless ram.include? static_name
+
+    decimal_value = ram[static_name]
     binary = convert_to_binary(decimal_value)
     result = Line.new(line, binary)
   elsif line.match? RAM::VARIABLE_ADDRESS_REGEX

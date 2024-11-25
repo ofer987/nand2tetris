@@ -1,8 +1,12 @@
 # frozen_string_literal: true
 
 class RAM
-  FIRST_RAM_ADDRESS = 0
+  FIRST_STATIC_RAM_ADDRESS = 16
+  LAST_STATIC_RAM_ADDRESS = 255
+
+  FIRST_RAM_ADDRESS = 256
   LAST_RAM_ADDRESS = 16_383
+  STATIC_ADDRESS_REGEX = /^@(Foo\..+)$/
   VARIABLE_ADDRESS_REGEX = /^@([^\d].+)$/
 
   def [](label)
@@ -43,6 +47,7 @@ class RAM
 
   def initialize(allocated_memory_map)
     @current_available_address = nil
+    @available_static_address = nil
     @address_map = allocated_memory_map
 
     allocate_memory(allocated_memory_map)
@@ -71,8 +76,20 @@ class RAM
     address_map
   end
 
+  def add_static_memory(source_code)
+    source_code.each do |line|
+      next unless line.match? STATIC_ADDRESS_REGEX
+
+      static_name = line.match(STATIC_ADDRESS_REGEX)[1]
+
+      increment_next_available_static_address
+      address_map[static_name] = available_static_address
+    end
+  end
+
   def add_variables(source_code)
     source_code.each do |line|
+      next if line.match? STATIC_ADDRESS_REGEX
       next unless line.match? VARIABLE_ADDRESS_REGEX
 
       variable_name = line.match(VARIABLE_ADDRESS_REGEX)[1]
@@ -110,5 +127,19 @@ class RAM
     value + 1
   end
 
-  attr_reader :allocated_memory, :allocated_memory_index, :address_map
+  def increment_next_available_static_address
+    if @available_static_address.nil?
+      @available_static_address = FIRST_STATIC_RAM_ADDRESS
+
+      return
+    end
+
+    if @available_static_address >= LAST_STATIC_RAM_ADDRESS
+      raise "Cannot allocated more STATIC Memory beyond #{LAST_STATIC_RAM_ADDRESS}"
+    end
+
+    @available_static_address += 1
+  end
+
+  attr_reader :allocated_memory, :allocated_memory_index, :address_map, :available_static_address
 end
